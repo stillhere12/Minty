@@ -3,22 +3,28 @@
 #include <stdio.h>
 #include <string>
 #include <vector>
-
+/*Added support for prefix - operator */
 int prio(char op) {
   if (op == '+' || op == '-')
     return 1;
   if (op == '*' || op == '/')
     return 2;
+  if (op == '~')
+    return 3;
   return 0;
 }
 
 void apply(std::stack<int> &v, std::stack<char> &o) {
+  char op = o.top();
+  o.pop();
+  if (op == '~') {
+    v.top() = -v.top();
+    return;
+  }
   int r = v.top();
   v.pop();
   int l = v.top();
   v.pop();
-  char op = o.top();
-  o.pop();
   switch (op) {
   case '+':
     v.push(l + r);
@@ -36,39 +42,47 @@ void apply(std::stack<int> &v, std::stack<char> &o) {
 }
 
 int eval_expr(const std::string &expr) {
-  int es = (int)expr.size(), A = 0, i = 0;
+  std::string e;
+  // Skip whitespaces
+  for (char c : expr)
+    if (c != ' ')
+      e += c;
+  int es = (int)e.size(), A = 0, i = 0;
   std::vector<int> D(es);
   for (int i = 0; i < es; ++i) {
-    if (expr[i] == '(')
+    if (e[i] == '(')
       A++;
-    else if (expr[i] == ')')
+    else if (e[i] == ')')
       A--;
     D[i] = A;
   }
   std::vector<std::stack<int>> vals(1);
   std::vector<std::stack<char>> ops(1);
   while (i < es) {
-    if (expr[i] == '(') {
+    if (e[i] == '(') {
       if (D[i] >= (int)vals.size())
         vals.resize(D[i] + 1), ops.resize(D[i] + 1);
       i++;
-    } else if (expr[i] == ')') {
-      int d = D[i] + 1; // ponytail: D[i] is depth after ')', add 1 for inside depth
+    } else if (e[i] == ')') {
+      int d = D[i] + 1; // we want calculation of previous depth
       while (!ops[d].empty())
         apply(vals[d], ops[d]);
       int r = vals[d].top();
       vals[d].pop(), vals[d - 1].push(r);
       i++;
-    } else if (std::isdigit(expr[i])) {
+    } else if (std::isdigit(e[i])) {
       int n = 0, d = D[i]; // ponytail: capture depth before i advances
-      while (i < (int)expr.size() && std::isdigit(expr[i]))
-        n = n * 10 + (expr[i++] - '0');
+      while (i < es && std::isdigit(e[i]))
+        n = n * 10 + (e[i++] - '0');
       vals[d].push(n);
     } else {
-      // Reason is to first apply more powerful expression then others
-      while (!ops[D[i]].empty() && prio(ops[D[i]].top()) >= prio(expr[i]))
-        apply(vals[D[i]], ops[D[i]]);
-      ops[D[i]].push(expr[i]);
+      char c = e[i];
+      if (c == '-' && (i == 0 || e[i - 1] == '(' || prio(e[i - 1]) > 0))
+        c = '~';
+      if (c != '~')
+        while (!ops[D[i]].empty() && prio(ops[D[i]].top()) >= prio(c))
+          apply(vals[D[i]], ops[D[i]]);
+      ops[D[i]].push(c);
       i++;
     }
   }
@@ -78,8 +92,26 @@ int eval_expr(const std::string &expr) {
 }
 
 int main(void) {
-  const char *s = "(1+(4+5+2)-3)+(6+8)";
-  printf("Expression: %s\n", s);
-  printf("Result: %d\n", eval_expr(s));
+  struct {
+    const char *e;
+    int r;
+  } tests[] = {
+      {"-5", -5},
+      {"-5+3", -2},
+      {"-(1+2)", -3},
+      {"-(1+2)-3", -6},
+      {"5*-3", -15},
+      {"--5", 5},
+      {"(1+(4+5+2)-3)+(6+8)", 23},
+      {"-1", -1},
+      {"1-(     -2)", 3}, // ponytail: spaces + unary
+      {"  42  ", 42},
+      {"1 - -2", 3},
+      {"  ( 1 + 2 )  ", 3},
+  };
+  for (auto &t : tests) {
+    int got = eval_expr(t.e);
+    printf("%s = %d %s\n", t.e, got, got == t.r ? "OK" : "FAIL");
+  }
   return 0;
 }
