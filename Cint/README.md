@@ -19,5 +19,6 @@ Turns `A + B * C ^ D - E` into a tree you can actually read:
 ## Build
 
 ```sh
+g++ main.cpp -o main && ./main
 gcc -Wall -Wextra -o main main.c && ./main
 ```
