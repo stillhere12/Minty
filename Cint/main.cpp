@@ -1,4 +1,5 @@
 #include <cctype>
+#include <iostream>
 #include <stack>
 #include <stdio.h>
 #include <string>
@@ -92,6 +93,12 @@ int eval_expr(const std::string &expr) {
 }
 
 int main(void) {
+  std::cout << "CCCCC  IIIII  N   N  TTTTT\n"
+               "C        I    NN  N    T  \n"
+               "C        I    N N N    T  \n"
+               "C        I    N  NN    T  \n"
+               "CCCCC  IIIII  N   N    T  \n"
+               "   expr eval  ( +  -  *  /  )\n";
   struct {
     const char *e;
     int r;
@@ -104,7 +111,7 @@ int main(void) {
       {"--5", 5},
       {"(1+(4+5+2)-3)+(6+8)", 23},
       {"-1", -1},
-      {"1-(     -2)", 3}, // ponytail: spaces + unary
+      {"1-(     -2)", 3},
       {"  42  ", 42},
       {"1 - -2", 3},
       {"  ( 1 + 2 )  ", 3},
@@ -113,5 +120,16 @@ int main(void) {
     int got = eval_expr(t.e);
     printf("%s = %d %s\n", t.e, got, got == t.r ? "OK" : "FAIL");
   }
+  std::cout << "--- enter expressions below ---\n";
+  std::string line;
+  while (1) {
+    std::cout << ">>";
+    std::getline(std::cin, line);
+    if (line == "exit")
+      break;
+    int A = eval_expr(line);
+    std::cout << A << '\n';
+  }
+  std::cout << "see ya\n";
   return 0;
 }
